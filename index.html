@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Gallery Collection</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #ff4757; margin-bottom: 30px; letter-spacing: 2px;}
+        
+        /* Search Bar */
+        .search-container {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        input[type="text"] {
+            padding: 15px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 30px;
+            border: 2px solid #333;
+            background: #1e1e1e;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: 0.3s;
+        }
+        input[type="text"]:focus { border-color: #ff4757; }
+
+        /* Grid Layout */
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Album Card */
+        .album-card {
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .album-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(255, 71, 87, 0.2);
+        }
+        
+        /* Thumbnail Area */
+        .thumb-container {
+            width: 100%;
+            height: 200px; /* Thumbnail eke usa */
+            background-color: #2c2c2c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.5s;
+            opacity: 0; /* Load wenakan hangala thiyanne */
+        }
+        .thumbnail.loaded { opacity: 1; }
+        
+        /* Loading Spinner */
+        .loader {
+            position: absolute;
+            color: #888;
+            font-size: 14px;
+        }
+
+        .album-info {
+            padding: 20px;
+            background: #252525;
+            flex-grow: 1;
+        }
+        .album-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #eee;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+        .album-link {
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>GALLERY COLLECTION</h1>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" onkeyup="filterAlbums()" placeholder="Search albums (Type name)...">
+    </div>
+
+    <div class="album-grid" id="galleryGrid">
+        </div>
+
+    <script>
+       
+        // ==========================================
+        // ALBUM CONFIGURATION
+        // ==========================================
+        const albums = [
+            // Folder name eka 'albums' nemei nam methana path eka wenas karanna
+            { title: "Gallery - Savannah Bond", file: "albums/gallery_tMRhPIZT5OH.html" },
+            { title: "Gallery - Other Set",     file: "albums/gallery_fwMNqsO1RSI.html" }
+        ];
+
+        // ==========================================
+        // IMPROVED SYSTEM CODE (With Error Handling)
+        // ==========================================
+        const grid = document.getElementById('galleryGrid');
+
+        async function initGallery() {
+            grid.innerHTML = "";
+            
+            for (let i = 0; i < albums.length; i++) {
+                const album = albums[i];
+                const cardId = `card-${i}`;
+                const imgId = `img-${i}`;
+                const msgId = `msg-${i}`;
+
+                // Card Template
+                const cardHTML = `
+                    <a href="${album.file}" class="album-card" id="${cardId}" target="_blank">
+                        <div class="thumb-container">
+                            <div class="loader" id="${msgId}">Loading...</div>
+                            <img src="" id="${imgId}" class="thumbnail" alt="${album.title}" onerror="this.style.display='none'">
+                        </div>
+                        <div class="album-info">
+                            <div class="album-title">${album.title}</div>
+                            <div class="album-link">Click to view images</div>
+                        </div>
+                    </a>
+                `;
+                grid.innerHTML += cardHTML;
+
+                // Fetch Image
+                fetchThumbnail(album.file, imgId, msgId);
+            }
+        }
+
+        function fetchThumbnail(htmlFileUrl, imgElementId, msgElementId) {
+            fetch(htmlFileUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("File Not Found");
+                    }
+                    return response.text();
+                })
+                .then(htmlText => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    
+                    // Image eka hoyanawa
+                    const firstImage = doc.querySelector('img');
+                    const imgTag = document.getElementById(imgElementId);
+                    const msgTag = document.getElementById(msgElementId);
+
+                    if (firstImage && firstImage.src) {
+                        imgTag.src = firstImage.src; 
+                        
+                        imgTag.onload = () => {
+                            imgTag.classList.add('loaded');
+                            msgTag.style.display = 'none'; // Image load unama text eka hanganna
+                        };
+                        imgTag.onerror = () => {
+                            msgTag.innerText = "Image Error"; // Image link eka wada natnam
+                        };
+                    } else {
+                        msgTag.innerText = "No Image Found"; // Image tag ekak hoyaganna bari nam
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    const msgTag = document.getElementById(msgElementId);
+                    msgTag.innerText = "Path Error"; // File eka hoyaganna bari nam (Wrong Folder)
+                    msgTag.style.color = "red";
+                });
+        }
+
+        function filterAlbums() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.getElementsByClassName('album-card');
+
+            for (let card of cards) {
+                const title = card.querySelector('.album-title').innerText.toLowerCase();
+                if (title.includes(query)) {
+                    card.style.display = "flex";
+                } else {
+                    card.style.display = "none";
+                }
+            }
+        }
+
+        initGallery();
+    </script>
+</body>
+</html>
